@@ -3,6 +3,7 @@
 var path          = require('path')
 var ndarray       = require('ndarray')
 var GifReader     = require('omggif').GifReader
+var Buffer        = require('buffer/').Buffer
 var pack          = require('ndarray-pack')
 var through       = require('through')
 var parseDataURI  = require('data-uri-to-buffer')
