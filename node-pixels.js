@@ -61,17 +61,19 @@ function handleGIF(data, cb) {
       return
     }
     var result = ndarray(ndata, nshape)
+    var frameInfo = []
     try {
       for(var i=0; i<reader.numFrames(); ++i) {
         reader.decodeAndBlitFrameRGBA(i, ndata.subarray(
           result.index(i, 0, 0, 0),
-          result.index(i+1, 0, 0, 0)))
+          result.index(i+1, 0, 0, 0)));
+        frameInfo.push(reader.frameInfo(i))
       }
     } catch(err) {
       cb(err)
       return
     }
-    cb(null, result.transpose(0,2,1))
+    cb(null, result.transpose(0,2,1), frameInfo)
   } else {
     var nshape = [reader.height, reader.width, 4]
     var ndata = new Uint8Array(nshape[0] * nshape[1] * nshape[2])
