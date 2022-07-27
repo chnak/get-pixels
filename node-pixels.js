@@ -12,6 +12,7 @@ var request       = require('request')
 var mime          = require('mime-types')
 var parseDataURI  = require('parse-data-uri')
 
+
 function handlePNG(data, cb) {
   var png = new PNG();
   png.parse(data, function(err, img_data) {
@@ -129,12 +130,62 @@ function doParse(mimeType, data, cb) {
   }
 }
 
+function toArrayBuffer(buf) {
+  const ab = new ArrayBuffer(buf.length);
+  const view = new Uint8Array(ab);
+  for (let i = 0; i < buf.length; ++i) {
+    view[i] = buf[i];
+  }
+  return ab;
+}
+
+const getImageType = (arrayBuffer) => {
+  var type = "";
+  var dv = new DataView(arrayBuffer,0,5);
+  var nume1 = dv.getUint8(0,true);
+  var nume2 = dv.getUint8(1,true);
+  var hex = nume1.toString(16) + nume2.toString(16) ;
+
+  switch(hex){
+    case "8950":
+      type = "image/png";
+      break;
+    case "4749":
+      type = "image/gif";
+      break;
+    case "424d":
+      type = "image/bmp";
+      break;
+    case "ffd8":
+      type = "image/jpeg";
+      break;
+    default:
+      type = null;
+      break;
+  }
+  return type;
+}
+
+const getType = (bf) => {
+  try {
+    return getImageType(toArrayBuffer(bf))
+  } catch (e) {
+    console.log('e', e)
+    return null
+  }
+
+}
+
 module.exports = function getPixels(url, type, cb) {
   if(!cb) {
     cb = type
     type = ''
   }
   if(Buffer.isBuffer(url)) {
+    if (!type) {
+      type = getType(url)
+    }
+
     if(!type) {
       cb(new Error('Invalid file type'))
       return
@@ -164,13 +215,16 @@ module.exports = function getPixels(url, type, cb) {
         return
       }
 
-      type = type;
+      if (!type) {
+        type = getType(body)
+      }
+
       if(!type){
         if(response.getHeader !== undefined){
-	  type = response.getHeader('content-type');
-	}else if(response.headers !== undefined){
-	  type = response.headers['content-type'];
-	}
+	      type = response.getHeader('content-type');
+	    }else if(response.headers !== undefined){
+	      type = response.headers['content-type'];
+        }
       }
       if(!type) {
         cb(new Error('Invalid content-type'))
@@ -184,7 +238,7 @@ module.exports = function getPixels(url, type, cb) {
         cb(err)
         return
       }
-      type = type || mime.lookup(url)
+      type = type || getType(data) || mime.lookup(url)
       if(!type) {
         cb(new Error('Invalid file type'))
         return
